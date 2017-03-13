@@ -328,59 +328,64 @@ bool MyScheduler::Dispatch()
 			throw 0;
 		}
 	}
-
-
-	if (queue.size() > 0)
-	{
-	
-		return assignCPUs();
-		
-	}
-	//else
 	if (stack.size() > 0)
 	{
-		return true; //nothing in queue but threads are waiting to arrive so wait but dont 
-	}
-	//else
-	return true;
+		assignCPUs();
+		return true;
+	} //threads are waiting to arrive
+
+	return (queue.size() > 0) && assignCPUs();
+
 }
-bool MyScheduler:: assignCPUs()
+bool MyScheduler::assignCPUs() //returns true if any cpu is not null
 {
-	vector<int> pop;
 	int i;
-	int null_count = 0;
+	bool out = false;	if (queue.size > 0)		out = true;
+
 	for (i = 0; i < num_cpu; i++)
 	{
-		if (i > queue.size() - 1)
-		{
-			CPUs[i] = NULL;
-			null_count++;
-		}
-		else
+		if (queue.size > 0) // we have more threads to go through in the queue
 		{
 
-			CPUs[i] = queue.at(i);
-			if (CPUs[i]->remaining_time <= 1)//this is the last iteration for this thread
-				pop.push_back(i); //save the position of the dead thread for removal after for loop so nothing screws up
-		}
-	}
-	if (null_count >= num_cpu)
-		return false;
-
-	for (i = 0; i < pop.size(); i++)
-	{
-		if (pop.at(i) < num_cpu)
-		{
-			if (queue.size() >= num_cpu)//at least 1 more thread on deck
+			if (CPUs[i] == NULL)
 			{
-				queue.at(pop.at(i)) = queue.at(num_cpu);// replace with on deck at position num_cpu
-				queue.erase(queue.begin() + num_cpu); //removal of original on deck after its been copied
-
+				CPUs[i] = queue.at(0);
+				queue.erase(queue.begin());
+				preempt = false;
 			}
-			else queue.at(pop.at(i)) = NULL; //no on decks
+			else if (preempt)
+			{
+				switch (policy)
+				{
+				case PBS:
+					if (CPUs[i]->priority > queue.front->priority)
+					{
+						CPUs[i] = queue.front;
+						queue.erase(queue.begin());
+						preempt = false;
+					}
+					break;
+				case STRFwP:
+					if (CPUs[i]->remaining_time > queue.front->remaining_time)
+					{
+						CPUs[i] = queue.front;
+						queue.erase(queue.begin());
+						preempt = false;
+					}
+					break;
+				default: cout << " preempted with A POLICY THAT DOESNT HAVE PREMPTION";
+					throw 0;
 
-		} else return false; // if reaches something screwed up but IDK what
-	}
+				}
+			}
 
+		}
+		else if (CPUs[i] != NULL)
+		{
+			out = true; // one CPU that is not null
+		}
+	}// end for loop
+
+	return out;
 }
 
