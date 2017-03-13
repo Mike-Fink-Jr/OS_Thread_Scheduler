@@ -15,7 +15,7 @@
 
 vector<ThreadDescriptorBlock*> stack;
 vector<ThreadDescriptorBlock*> queue;
-
+bool preempt;
 class MyScheduler: public Scheduler {
 public:
 	MyScheduler(Policy p, unsigned int n) : Scheduler(p, n) {}
