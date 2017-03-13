@@ -11,10 +11,10 @@
 *
 *	The queue holds the threads that have already arrived, in the order specific to its policy.
 *
-*	Because we know when threads become available we can easily insert them into the queue for 
+*	Because we know when threads become available we can easily insert them into the queue for
 *	easy access for the assignCPUs() function.
 *
-*	CreateThread()-> if remaining_time > 0 then create and fill a node and then place 
+*	CreateThread()-> if remaining_time > 0 then create and fill a node and then place
 *						the node in the stack in order of ascending arrival_time. (completed)
 *
 *	    Dispatch()-> Check if thread on top of stack is arriving, if so place thread in queue
@@ -35,12 +35,12 @@
 // place in the stack by order of arival time
 void MyScheduler::CreateThread(int arriving_time, int remaining_time, int priority, int tid) //Thread ID not Process ID
 {
-	if (remaining_time <= 0);
-		return;
+	if (remaining_time <= 0)
+	return;
 
 	//for loop iterater
 	int i;
-
+	bool found = false;
 	//create a new node
 	ThreadDescriptorBlock* node = new ThreadDescriptorBlock();
 
@@ -49,21 +49,24 @@ void MyScheduler::CreateThread(int arriving_time, int remaining_time, int priori
 	node->tid = tid;
 	node->remaining_time = remaining_time;
 	node->arriving_time = arriving_time;
-	
+
 	if (stack.size() == 0)
 		stack.insert(stack.begin(), node);
 	else
 	{
-
 		// checks if created node is less than each value 
-		for (i = 0; i < stack.size(); i++)
+		for (i = 0; i < stack.size() && !found; i++)
 		{
 			if (node->arriving_time < stack.at(i)->arriving_time)
 			{
 				stack.insert(stack.begin() + i, node);
-				i = stack.size() + 1;
+				found = true;
 			}
 		}// stack is now sorted by incoming
+		if (found == false) 
+		{
+			stack.push_back(node);
+		}
 
 
 	}
@@ -71,16 +74,14 @@ void MyScheduler::CreateThread(int arriving_time, int remaining_time, int priori
 
 bool MyScheduler::Dispatch()
 {
-	
-
 	int i;
 	ThreadDescriptorBlock *node;
-	ThreadDescriptorBlock *temp= NULL;
+	ThreadDescriptorBlock *temp = NULL;
 	bool newNode = false;
 	preempt = false;
 	bool found = false;
 
-	if (stack.at(0)->arriving_time == timer)
+	if (stack.at(0)->arriving_time <= timer)
 	{
 		node = stack.at(0);
 		stack.erase(stack.begin());
@@ -96,48 +97,48 @@ bool MyScheduler::Dispatch()
 	{
 		switch (policy)
 		{
-//First Come First Serve: 
-//		Since stack already is sorted in order of time,if newNode==true then node has just arrived 
-//		and all elements in queue have faster arrival time so just add to end of queue
+			//First Come First Serve: 
+			//		Since stack already is sorted in order of time,if newNode==true then node has just arrived 
+			//		and all elements in queue have faster arrival time so just add to end of queue
 		case FCFS:
 			queue.push_back(node);
 			/*
-			if (num_cpu < queue.size())					
-				queue.push_back(node);
+			if (num_cpu < queue.size())
+			queue.push_back(node);
 			else
 			{
-				for (i = 0; i < num_cpu; i++)
-				{
-					if (queue.at(i) == NULL)
-					{
-						newNode = false;
-						queue.at(i) = node;
-						i = num_cpu + 1;
-					}
-				} if (newNode) queue.push_back(node);
+			for (i = 0; i < num_cpu; i++)
+			{
+			if (queue.at(i) == NULL)
+			{
+			newNode = false;
+			queue.at(i) = node;
+			i = num_cpu + 1;
+			}
+			} if (newNode) queue.push_back(node);
 			}
 			*/
 			break;
 
 
-//Shortest Time Remaining First, without preemption
-//		Place node into vector in order of shortest remaining time
-//		If num_cpu< queue_size, start loop after num_cpu to take care of non premption
-//		else put into the first null value.
-//
+			//Shortest Time Remaining First, without preemption
+			//		Place node into vector in order of shortest remaining time
+			//		If num_cpu< queue_size, start loop after num_cpu to take care of non premption
+			//		else put into the first null value.
+			//
 		case STRFwoP:
 			if (queue.size() == 0) {
 
 				queue.push_back(node);
-		
+
 			}
 			else {
 				for (int i = 0; i < queue.size(); i++) {
 
 					if (node->remaining_time < queue.at(i)->remaining_time) {
-							queue.insert(queue.begin() + i, node);
-							found = true;
-							i = queue.size() + 1;
+						queue.insert(queue.begin() + i, node);
+						found = true;
+						i = queue.size() + 1;
 					}
 
 				}
@@ -147,33 +148,33 @@ bool MyScheduler::Dispatch()
 				}
 			}
 			/*
-			if (num_cpu < queue.size())//no open cpus 
+			if (num_cpu < queue.size())//no open cpus
 			{
-				for (i = num_cpu; i < queue.size(); i++)
-				{
-					if (node->remaining_time != queue.at(i)->remaining_time)// multiple with same time will move current to back
-
-						if (node->remaining_time < queue.at(i)->remaining_time)
-						{
-							queue.insert(queue.begin() + i, node);
-							i = queue.size() + 1; // exits for loop
-						}
-
-
-				}
-
-			} else 
+			for (i = num_cpu; i < queue.size(); i++)
 			{
-				for (i = 0; i < num_cpu; i++)
-				{
-					if (queue.at(i) == NULL )
-					{
-						newNode = false;
-						queue.at(i) = node;
-						i = num_cpu + 1;
+			if (node->remaining_time != queue.at(i)->remaining_time)// multiple with same time will move current to back
 
-					}
-				}if (newNode) queue.push_back(node);
+			if (node->remaining_time < queue.at(i)->remaining_time)
+			{
+			queue.insert(queue.begin() + i, node);
+			i = queue.size() + 1; // exits for loop
+			}
+
+
+			}
+
+			} else
+			{
+			for (i = 0; i < num_cpu; i++)
+			{
+			if (queue.at(i) == NULL )
+			{
+			newNode = false;
+			queue.at(i) = node;
+			i = num_cpu + 1;
+
+			}
+			}if (newNode) queue.push_back(node);
 			}
 			*/
 			break;
@@ -183,69 +184,69 @@ bool MyScheduler::Dispatch()
 
 		case STRFwP:	//Shortest Time Remaining First, with preemption
 
-		if (queue.size() == 0) {
+			if (queue.size() == 0) {
 
-			queue.push_back(node);
+				queue.push_back(node);
 
-		}
-		else {
-			for (int i = 0; i < queue.size(); i++) {
+			}
+			else {
+				for (int i = 0; i < queue.size(); i++) {
 
-				if (node->remaining_time < queue.at(i)->remaining_time) {
-					queue.insert(queue.begin() + i, node);
-					found = true;
-					if (i == 0) {
-						preempt = true;
+					if (node->remaining_time < queue.at(i)->remaining_time) {
+						queue.insert(queue.begin() + i, node);
+						found = true;
+						if (i == 0) {
+							preempt = true;
+						}
+						i = queue.size() + 1;
 					}
-					i = queue.size() + 1;
+
 				}
 
+				if (found == false) {
+					queue.push_back(node);
+				}
 			}
-
-			if (found == false) {
-				queue.push_back(node);
-			}
-		}
-		/*
-		if (num_cpu < queue.size())//no open cpus
-		{
+			/*
+			if (num_cpu < queue.size())//no open cpus
+			{
 			for (i = 0; i < queue.size(); i++)
 			{
-				if (node->remaining_time != queue.at(i)->remaining_time ||queue.at(i)==NULL)// multiple with same time will move current to back
-					if (node->remaining_time < queue.at(i)->remaining_time || queue.at(i) == NULL)
-					{
-					if (i < num_cpu) //prempt: replace current cpu thread with node and keep going through the loop with the displaced thread
-					{
-						temp = queue.at(i);
-						queue.at(i) = node;
-						node = temp;
-						temp = NULL;
-					} else // no prempt
-					{
-						queue.insert(queue.begin() + i, node);
-						i = queue.size() + 1; // exits for loop
-					}
+			if (node->remaining_time != queue.at(i)->remaining_time ||queue.at(i)==NULL)// multiple with same time will move current to back
+			if (node->remaining_time < queue.at(i)->remaining_time || queue.at(i) == NULL)
+			{
+			if (i < num_cpu) //prempt: replace current cpu thread with node and keep going through the loop with the displaced thread
+			{
+			temp = queue.at(i);
+			queue.at(i) = node;
+			node = temp;
+			temp = NULL;
+			} else // no prempt
+			{
+			queue.insert(queue.begin() + i, node);
+			i = queue.size() + 1; // exits for loop
+			}
 
-					}
+			}
 
 
 			}
 
-		}
-		else
-		{
+			}
+			else
+			{
 			for (i = 0; i < num_cpu; i++)
 			{
-				if (queue.at(i) == NULL)
-				{
-					newNode = false;
-					queue.at(i)= node;
-					i = num_cpu + 1;
+			if (queue.at(i) == NULL)
+			{
+			newNode = false;
+			queue.at(i)= node;
+			i = num_cpu + 1;
 
-				}if (newNode) queue.push_back(node);
+			}if (newNode) queue.push_back(node);
 			}
-		}
-		*/
+			}
+			*/
 
 
 
@@ -253,8 +254,8 @@ bool MyScheduler::Dispatch()
 
 
 
-		break;
-		
+			break;
+
 		case PBS:		//Priority Based Scheduling, with preemption
 			if (queue.size() == 0) {
 
@@ -280,47 +281,47 @@ bool MyScheduler::Dispatch()
 				}
 			}
 			/*
-			if (num_cpu < queue.size())//no open cpus 
+			if (num_cpu < queue.size())//no open cpus
 			{
-				for (i = 0; i < queue.size(); i++)
-				{
-					if (node->priority != queue.at(i)->priority || queue.at(i) == NULL)// multiple with same time will move current to back
-					{
-						if (node->priority < queue.at(i)->priority || queue.at(i) == NULL)
-						{
-							if (i < num_cpu) //prempt: replace current cpu thread with node and keep going through the loop with the displaced thread
-							{
-								temp = queue.at(i);
-								queue.at(i) = node;
-								node = temp;
-								temp = NULL;
-							}
-							else // no prempt
-							{
-								queue.insert(queue.begin() + i, node);
-								i = queue.size() + 1; // exits for loop					
-							}
+			for (i = 0; i < queue.size(); i++)
+			{
+			if (node->priority != queue.at(i)->priority || queue.at(i) == NULL)// multiple with same time will move current to back
+			{
+			if (node->priority < queue.at(i)->priority || queue.at(i) == NULL)
+			{
+			if (i < num_cpu) //prempt: replace current cpu thread with node and keep going through the loop with the displaced thread
+			{
+			temp = queue.at(i);
+			queue.at(i) = node;
+			node = temp;
+			temp = NULL;
+			}
+			else // no prempt
+			{
+			queue.insert(queue.begin() + i, node);
+			i = queue.size() + 1; // exits for loop
+			}
 
-						}
-					}
+			}
+			}
 
-				}
+			}
 
 			}
 			else
 			{
-				for (i = 0; i < num_cpu; i++)
-				{
-					if (queue.at(i) == NULL)
-					{
-						newNode = false;
-						queue.at(i) = node;
-						i = num_cpu + 1;
+			for (i = 0; i < num_cpu; i++)
+			{
+			if (queue.at(i) == NULL)
+			{
+			newNode = false;
+			queue.at(i) = node;
+			i = num_cpu + 1;
 
-					}if (newNode) queue.push_back(node);
-				}
+			}if (newNode) queue.push_back(node);
 			}
-*/
+			}
+			*/
 			break;
 
 		default:
@@ -340,11 +341,11 @@ bool MyScheduler::Dispatch()
 bool MyScheduler::assignCPUs() //returns true if any cpu is not null
 {
 	int i;
-	bool out = false;	if (queue.size > 0)		out = true;
+	bool out = false;	if (queue.size() > 0)		out = true;
 
 	for (i = 0; i < num_cpu; i++)
 	{
-		if (queue.size > 0) // we have more threads to go through in the queue
+		if (queue.size() > 0) // we have more threads to go through in the queue
 		{
 
 			if (CPUs[i] == NULL)
@@ -358,17 +359,17 @@ bool MyScheduler::assignCPUs() //returns true if any cpu is not null
 				switch (policy)
 				{
 				case PBS:
-					if (CPUs[i]->priority > queue.front->priority)
+					if (CPUs[i]->priority > queue.front()->priority)
 					{
-						CPUs[i] = queue.front;
+						CPUs[i] = queue.front();
 						queue.erase(queue.begin());
 						preempt = false;
 					}
 					break;
 				case STRFwP:
-					if (CPUs[i]->remaining_time > queue.front->remaining_time)
+					if (CPUs[i]->remaining_time > queue.front()->remaining_time)
 					{
-						CPUs[i] = queue.front;
+						CPUs[i] = queue.front();
 						queue.erase(queue.begin());
 						preempt = false;
 					}
@@ -388,4 +389,5 @@ bool MyScheduler::assignCPUs() //returns true if any cpu is not null
 
 	return out;
 }
+
 
